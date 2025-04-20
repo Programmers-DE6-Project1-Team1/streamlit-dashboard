@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 API_URL = "http://localhost:8000/api/products/"
 
 st.set_page_config(page_title="CU 상품 대시보드", layout="wide")
-st.title("📊 CU 신상품 데이터 시각화")
+st.title("📊 CU 상품 데이터 시각화")
 
 # --- 1. 데이터 불러오기 ---
 response = requests.get(API_URL)
@@ -31,7 +31,12 @@ st.dataframe(filtered_df[['product_name', 'price', 'label', 'promotion_tag']])
 
 # --- 3. 가격 분포 히스토그램 ---
 st.subheader("📈 전체 가격 분포")
-st.hist_chart(df["price"])
+
+fig, ax = plt.subplots()
+ax.hist(df["price"], bins=20, color='skyblue', edgecolor='black')
+ax.set_xlabel("가격")
+ax.set_ylabel("상품 수")
+st.pyplot(fig)
 
 # --- 4. Label별 상품 수 ---
 st.subheader("🏷️ 프로모션 라벨별 상품 수")
@@ -44,11 +49,13 @@ tag_counts = df['promotion_tag'].fillna('없음').value_counts().head(10)
 st.bar_chart(tag_counts)
 
 # --- 6. Tag 워드클라우드 (선택 사항) ---
+font_path = "/System/Library/Fonts/AppleSDGothicNeo.ttc"
+
 if "tag" in df.columns:
     st.subheader("🧩 태그 워드클라우드")
     all_tags = " ".join(df['tag'].dropna().astype(str))
     if all_tags.strip():
-        wc = WordCloud(width=800, height=400, background_color="white").generate(all_tags)
+        wc = WordCloud(width=800, height=400, background_color="white", font_path=font_path).generate(all_tags)
         fig, ax = plt.subplots()
         ax.imshow(wc, interpolation="bilinear")
         ax.axis("off")
