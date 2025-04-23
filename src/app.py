@@ -39,7 +39,7 @@ FONT_PATH = find_korean_font()
 # ────────────────────────────── 유틸
 @st.cache_data(ttl=300)
 def fetch_products_all() -> pd.DataFrame:
-    data = requests.get(PRODUCTS_ALL, timeout=30).json()
+    data = requests.get(PRODUCTS_ALL, timeout=40).json()
     items = data if isinstance(data, list) else data.get("results", [])
     df = pd.DataFrame(items)
 
