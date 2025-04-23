@@ -24,10 +24,10 @@ def find_korean_font() -> str | None:
         [r"C:\Windows\Fonts\malgun.ttf"]
         if sys == "Windows" else
         ["/System/Library/Fonts/AppleSDGothicNeo.ttc",
-         "/System/Library/Fonts/AppleGothic.ttf"]
+        "/System/Library/Fonts/AppleGothic.ttf"]
         if sys == "Darwin" else
         ["/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-         "/usr/share/fonts/truetype/noto/NotoSansKR-Regular.otf"]
+        "/usr/share/fonts/truetype/noto/NotoSansKR-Regular.otf"]
     )
     for p in candidates:
         if pathlib.Path(p).exists():
@@ -39,7 +39,7 @@ FONT_PATH = find_korean_font()
 # ────────────────────────────── 유틸
 @st.cache_data(ttl=300)
 def fetch_products_all() -> pd.DataFrame:
-    data = requests.get(PRODUCTS_ALL, timeout=10).json()
+    data = requests.get(PRODUCTS_ALL, timeout=30).json()
     items = data if isinstance(data, list) else data.get("results", [])
     df = pd.DataFrame(items)
 
@@ -87,33 +87,59 @@ def view_dashboard():
     st.markdown("---")
 
     col1, col2 = st.columns(2)
-    # ── 라벨별 평균가
+
+    # ── 라벨별 평균가 (좌측, 초록 그라데이션)
     with col1:
         st.subheader("라벨별 평균 가격")
         df_l = filtered.copy()
         df_l["label"] = df_l["label"].fillna("없음")
         lbl_df = df_l.groupby("label")["price"].mean().reset_index(name="avg_price")
+
         bar1 = (
-            alt.Chart(lbl_df).mark_bar().encode(
-                x=alt.X("label:N", sort=alt.SortField("avg_price","descending")),
+            alt.Chart(lbl_df)
+            .mark_bar()
+            .encode(
+                x=alt.X("label:N", sort=alt.SortField("avg_price", "descending")),
                 y=alt.Y("avg_price:Q", title="평균 가격"),
-                tooltip=["label","avg_price"]
+                tooltip=["label", "avg_price"],
+                color=alt.Color(
+                    "avg_price:Q",
+                    scale=alt.Scale(
+                        domain=[lbl_df["avg_price"].min(), lbl_df["avg_price"].max()],
+                        range=["#A8D032", "#006400"]  # 연두 → 짙은 초록
+                    ),
+                    legend=None
+                ),
             )
         )
         st.altair_chart(bar1, use_container_width=True)
 
-    # ── 프로모션 태그별 개수
+    # ── 프로모션 태그별 개수 (우측, 보라 그라데이션)
     with col2:
         st.subheader("1+1, 2+1 상품 개수")
         pt_df = (
-            filtered.assign(promotion_tag=filtered["promotion_tag"].fillna("없음"))
-            .groupby("promotion_tag").size().reset_index(name="count")
+            filtered
+            .assign(promotion_tag=filtered["promotion_tag"].fillna("없음"))
+            .groupby("promotion_tag")
+            .size()
+            .reset_index(name="count")
         )
+
         bar2 = (
-            alt.Chart(pt_df).mark_bar().encode(
+            alt.Chart(pt_df)
+            .mark_bar()
+            .encode(
                 x=alt.X("promotion_tag:N", title="Promotion Tag"),
                 y=alt.Y("count:Q", title="상품 수"),
-                tooltip=["promotion_tag","count"]
+                tooltip=["promotion_tag", "count"],
+                color=alt.Color(
+                    "count:Q",
+                    scale=alt.Scale(
+                        domain=[pt_df["count"].min(), pt_df["count"].max()],
+                        range=["#D6B3FF", "#5E00B3"]  # 연보라 → 진한 보라
+                    ),
+                    legend=None
+                ),
             )
         )
         st.altair_chart(bar2, use_container_width=True)
@@ -131,8 +157,8 @@ def view_dashboard():
         else:
             tag_counts = tags_series.value_counts().head(100).to_dict()
             wc = WordCloud(font_path=FONT_PATH,width=400,height=200,
-                           background_color="white",max_words=100
-                          ).generate_from_frequencies(tag_counts)
+                        background_color="white",max_words=100
+                        ).generate_from_frequencies(tag_counts)
             fig, ax = plt.subplots(figsize=(8,4))
             ax.imshow(wc, interpolation="bilinear"); ax.axis("off")
             st.pyplot(fig)
@@ -146,7 +172,7 @@ def view_dashboard():
             name_counts = names.value_counts().head(100).to_dict()
             wc2 = WordCloud(font_path=FONT_PATH,width=400,height=200,
                             background_color="white",max_words=100
-                           ).generate_from_frequencies(name_counts)
+                        ).generate_from_frequencies(name_counts)
             fig2, ax2 = plt.subplots(figsize=(8,4))
             ax2.imshow(wc2, interpolation="bilinear"); ax2.axis("off")
             st.pyplot(fig2)
